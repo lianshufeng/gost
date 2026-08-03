@@ -39,3 +39,15 @@ snap
 /*.yaml
 *.txt
 dist/
+
+# Build artifacts
+.build/
+
+# Codegraph index (generated, multi-hundred-MB db)
+.codegraph/
+
+# Python cache
+__pycache__/
+
+# Claude session config
+.claude/

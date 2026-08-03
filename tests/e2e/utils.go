@@ -128,19 +128,160 @@ func udpEchoContainerRequest(_ context.Context, networkName string) testcontaine
 	}
 }
 
+// RunDNSResponderContainer starts a UDP-based DNS responder for e2e DNS tests.
+// The container is registered with the network alias "dns-server".
+func RunDNSResponderContainer(ctx context.Context, networkName string) (testcontainers.Container, error) {
+	req := testcontainers.ContainerRequest{
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:    ".",
+			Dockerfile: "Dockerfile",
+			Repo:       "gost-e2e",
+			Tag:        "latest",
+			KeepImage:  true,
+			BuildOptionsModifier: func(opts *client.ImageBuildOptions) {
+				opts.NetworkMode = "host"
+			},
+		},
+		Networks: []string{networkName},
+		NetworkAliases: map[string][]string{
+			networkName: {"dns-server"},
+		},
+		Files: []testcontainers.ContainerFile{
+			{HostFilePath: "scripts/dns_responder.py", ContainerFilePath: "/scripts/dns_server.py", FileMode: 0644},
+		},
+		ExposedPorts: []string{"5353/udp"},
+		Cmd:          []string{"python3", "/scripts/dns_server.py"},
+		WaitingFor:   wait.ForExposedPort().SkipInternalCheck(),
+	}
+
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+}
+
+// RunTCPDNSResponderContainer starts a TCP-based DNS responder for e2e DNS tests.
+// The container is registered with the network alias "dns-server".
+func RunTCPDNSResponderContainer(ctx context.Context, networkName string) (testcontainers.Container, error) {
+	req := testcontainers.ContainerRequest{
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:    ".",
+			Dockerfile: "Dockerfile",
+			Repo:       "gost-e2e",
+			Tag:        "latest",
+			KeepImage:  true,
+			BuildOptionsModifier: func(opts *client.ImageBuildOptions) {
+				opts.NetworkMode = "host"
+			},
+		},
+		Networks: []string{networkName},
+		NetworkAliases: map[string][]string{
+			networkName: {"dns-server"},
+		},
+		Files: []testcontainers.ContainerFile{
+			{HostFilePath: "scripts/dns_responder_tcp.py", ContainerFilePath: "/scripts/dns_server.py", FileMode: 0644},
+		},
+		ExposedPorts: []string{"5353/tcp"},
+		Cmd:          []string{"python3", "/scripts/dns_server.py"},
+		WaitingFor:   wait.ForExposedPort(),
+	}
+
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+}
+
+// RunResolverResponderContainer starts a UDP DNS responder that answers A
+// queries for "echo.test" with targetIP (an echo server's address) and returns
+// NXDOMAIN for all other names. It is used to prove the resolver module drives
+// outbound dialing: a gost proxy pointed at this responder resolves echo.test
+// to a reachable address. The container is aliased "dns-responder".
+func RunResolverResponderContainer(ctx context.Context, networkName, targetIP string) (testcontainers.Container, error) {
+	req := testcontainers.ContainerRequest{
+		FromDockerfile: testcontainers.FromDockerfile{
+			Context:    ".",
+			Dockerfile: "Dockerfile",
+			Repo:       "gost-e2e",
+			Tag:        "latest",
+			KeepImage:  true,
+			BuildOptionsModifier: func(opts *client.ImageBuildOptions) {
+				opts.NetworkMode = "host"
+			},
+		},
+		Networks: []string{networkName},
+		NetworkAliases: map[string][]string{
+			networkName: {"dns-responder"},
+		},
+		Files: []testcontainers.ContainerFile{
+			{HostFilePath: "scripts/dns_resolver_responder.py", ContainerFilePath: "/scripts/dns_server.py", FileMode: 0644},
+		},
+		ExposedPorts: []string{"5353/udp"},
+		Cmd:          []string{"python3", "/scripts/dns_server.py", targetIP, "5353"},
+		WaitingFor:   wait.ForExposedPort().SkipInternalCheck(),
+	}
+
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+}
+
+// RunHTTPSEchoContainer starts an HTTPS echo server (self-signed cert) that
+// responds with "hello-gost" on port 8443. The container is registered with
+// the network alias "https-echo".
+func RunHTTPSEchoContainer(ctx context.Context, networkName string) (testcontainers.Container, error) {
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			FromDockerfile: testcontainers.FromDockerfile{
+				Context:    ".",
+				Dockerfile: "Dockerfile",
+				Repo:       "gost-e2e",
+				Tag:        "latest",
+				KeepImage:  true,
+				BuildOptionsModifier: func(opts *client.ImageBuildOptions) {
+					opts.NetworkMode = "host"
+				},
+			},
+			Networks: []string{networkName},
+			NetworkAliases: map[string][]string{
+				networkName: {"https-echo"},
+			},
+			Files: []testcontainers.ContainerFile{
+				{HostFilePath: "scripts/https_echo.py", ContainerFilePath: "/scripts/https_echo.py", FileMode: 0644},
+			},
+			ExposedPorts: []string{"8443/tcp"},
+			Cmd:          []string{"python3", "/scripts/https_echo.py"},
+			WaitingFor:   wait.ForExposedPort(),
+		},
+		Started: true,
+	})
+}
+
 func RunGostContainer(ctx context.Context, networkName, yamlPath string) (testcontainers.Container, error) {
-	return runGostContainer(ctx, networkName, yamlPath, nil, nil)
+	return runGostContainer(ctx, networkName, yamlPath, nil, nil, nil)
 }
 
 func RunGostContainerWithPorts(ctx context.Context, networkName, yamlPath string, exposedPorts ...string) (testcontainers.Container, error) {
-	return runGostContainer(ctx, networkName, yamlPath, nil, exposedPorts)
+	return runGostContainer(ctx, networkName, yamlPath, nil, exposedPorts, nil)
 }
 
 func RunGostContainerWithOptions(ctx context.Context, networkName, yamlPath string, aliases, exposedPorts []string) (testcontainers.Container, error) {
-	return runGostContainer(ctx, networkName, yamlPath, aliases, exposedPorts)
+	return runGostContainer(ctx, networkName, yamlPath, aliases, exposedPorts, nil)
 }
 
-func runGostContainer(ctx context.Context, networkName, yamlPath string, aliases, exposedPorts []string) (testcontainers.Container, error) {
+// RunGostContainerWithFiles starts a gost container with extra files mounted.
+func RunGostContainerWithFiles(ctx context.Context, networkName, yamlPath string, extraFiles []testcontainers.ContainerFile, exposedPorts ...string) (testcontainers.Container, error) {
+	return runGostContainer(ctx, networkName, yamlPath, nil, exposedPorts, extraFiles)
+}
+
+func runGostContainer(ctx context.Context, networkName, yamlPath string, aliases, exposedPorts []string, extraFiles []testcontainers.ContainerFile) (testcontainers.Container, error) {
+	files := []testcontainers.ContainerFile{
+		{HostFilePath: GostBinPath, ContainerFilePath: "/bin/gost", FileMode: 0755},
+		{HostFilePath: yamlPath, ContainerFilePath: "/config.yaml", FileMode: 0644},
+	}
+	files = append(files, extraFiles...)
+
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
 			Context:    ".",
@@ -153,17 +294,14 @@ func runGostContainer(ctx context.Context, networkName, yamlPath string, aliases
 			},
 		},
 		ExposedPorts: exposedPorts,
-		// interal check for udp ports will be failed
+		// internal check for udp ports will be failed
 		WaitingFor: wait.ForExposedPort().SkipInternalCheck(),
 		Networks:   []string{networkName},
 		NetworkAliases: map[string][]string{
 			networkName: aliases,
 		},
-		Files: []testcontainers.ContainerFile{
-			{HostFilePath: GostBinPath, ContainerFilePath: "/bin/gost", FileMode: 0755},
-			{HostFilePath: yamlPath, ContainerFilePath: "/config.yaml", FileMode: 0644},
-		},
-		Cmd: []string{"/bin/gost", "-C", "/config.yaml"},
+		Files: files,
+		Cmd:   []string{"/bin/gost", "-C", "/config.yaml"},
 	}
 
 	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
