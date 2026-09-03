@@ -3,8 +3,8 @@ module github.com/go-gost/gost
 go 1.26.3
 
 require (
-	github.com/go-gost/core v0.6.0
-	github.com/go-gost/x v0.15.2
+	github.com/go-gost/core v0.6.1
+	github.com/go-gost/x v0.16.1
 	github.com/judwhite/go-svc v1.2.1
 	github.com/moby/moby/client v0.4.0
 	github.com/stretchr/testify v1.11.1
@@ -46,7 +46,7 @@ require (
 	github.com/gin-contrib/cors v1.7.2 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/gin-gonic/gin v1.12.0 // indirect
-	github.com/go-gost/go-shadowsocks2 v0.1.3 // indirect
+	github.com/go-gost/go-shadowsocks2 v0.1.4 // indirect
 	github.com/go-gost/gosocks4 v0.1.0 // indirect
 	github.com/go-gost/gosocks5 v0.5.0 // indirect
 	github.com/go-gost/plugin v0.5.0 // indirect
@@ -86,11 +86,11 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/go-archive v0.2.0 // indirect
+	github.com/moby/go-archive v0.3.0 // indirect
 	github.com/moby/moby/api v1.54.1 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
-	github.com/moby/sys/sequential v0.6.0 // indirect
-	github.com/moby/sys/user v0.4.0 // indirect
+	github.com/moby/sys/sequential v0.7.0 // indirect
+	github.com/moby/sys/user v0.4.1 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
